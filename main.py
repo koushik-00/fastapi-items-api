@@ -62,7 +62,7 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
 # -- POST --
 # create a models.Item object, add it to the db, commit it
 @apb.post('/items', response_model=ItemSchema)
-def create_item(itm: ItemCreate, db: Session = Depends(get_db)):
+def create_item(itm: ItemCreate, db: Session = Depends(get_db), current_user: dict = Depends(auth.get_current_user)):
     db_item = models.Item(name = itm.name, price = itm.price)
     db.add(db_item)
     db.commit()
@@ -71,7 +71,7 @@ def create_item(itm: ItemCreate, db: Session = Depends(get_db)):
 
 # -- PUT --
 @apb.put('/items/{item_id}', response_model=ItemSchema)
-def put_item(item_id: int, item: ItemCreate, db: Session = Depends(get_db)):
+def put_item(item_id: int, item: ItemCreate, db: Session = Depends(get_db), current_user: dict = Depends(auth.get_current_user)):
     db_item = db.get(models.Item, item_id)
     if not db_item:
         raise HTTPException(status_code=404, detail='Item not found')
@@ -88,7 +88,7 @@ def put_item(item_id: int, item: ItemCreate, db: Session = Depends(get_db)):
 
 # -- DELETE --
 @apb.delete('/items/{item_id}')
-def delete_item(item_id: int, db: Session = Depends(get_db)):
+def delete_item(item_id: int, db: Session = Depends(get_db), current_user: dict = Depends(auth.get_current_user)):
     del_item = db.get(models.Item, item_id)
     if not del_item:
         raise HTTPException(status_code=404, detail='Item not found')
