@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 
 from sqlalchemy.orm import Session
@@ -22,9 +22,13 @@ class ItemSchema(ItemCreate):
     id: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UserCreate(BaseModel):
+    username: str
+    password: str
+
+class UserLogin(BaseModel):
     username: str
     password: str
 
@@ -104,5 +108,13 @@ async def user_register(new_user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(user)
     return user
 
+@apb.post('/login')
+async def user_login(cred: UserLogin, db: Session = Depends(get_db)):
+    user = db.execute(select(models.User).filter(models.User.username == cred.username)).scalar_one_or_none()
 
+   
     
+    if not user or not auth.verify_password(cred.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+    
+    return auth.create_access_token({"username": user.username})
