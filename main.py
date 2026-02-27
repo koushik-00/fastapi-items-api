@@ -6,6 +6,7 @@ from sqlalchemy import select
 from database import engine, get_db
 from fastapi import Depends
 import models
+import auth
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -23,6 +24,9 @@ class ItemSchema(ItemCreate):
     class Config:
         orm_mode = True
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
 
 apb = FastAPI()
 
@@ -87,3 +91,18 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
     db.delete(del_item)
     db.commit()
     return {'message': 'Item deleted successfully'}
+
+
+@apb.post('/register')
+async def user_register(new_user: UserCreate, db: Session = Depends(get_db)):
+    existing_user = db.execute(select(models.User).filter(models.User.username == new_user.username)).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail = "Username already exists")
+    user = models.User(username=new_user.username, hashed_password = auth.hash_password(new_user.password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+    
